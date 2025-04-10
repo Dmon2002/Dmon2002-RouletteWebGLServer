@@ -1,7 +1,10 @@
-from aiogram import Bot, Dispatcher, types
-from aiogram.types import WebAppInfo
-from aiogram.utils import executor
+import asyncio
 import os
+from aiogram import Bot, Dispatcher, types, F
+from aiogram.types import WebAppInfo
+from aiogram.enums import ParseMode
+from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.utils.keyboard import ReplyKeyboardBuilder
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -9,15 +12,18 @@ load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 WEBAPP_URL = os.getenv("WEBAPP_URL")
 
-bot = Bot(token=BOT_TOKEN)
-dp = Dispatcher(bot)
+bot = Bot(token=BOT_TOKEN, parse_mode=ParseMode.HTML)
+dp = Dispatcher(storage=MemoryStorage())
 
-@dp.message_handler(commands=['start'])
-async def start(msg: types.Message):
-    web_app = WebAppInfo(url=WEBAPP_URL)
-    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    keyboard.add(types.KeyboardButton(text="🎮 Играть", web_app=web_app))
-    await msg.answer("Нажми кнопку, чтобы поиграть!", reply_markup=keyboard)
+@dp.message(F.text == "/start")
+async def start_handler(message: types.Message):
+    builder = ReplyKeyboardBuilder()
+    builder.button(text="🎮 Играть", web_app=WebAppInfo(url=WEBAPP_URL))
+    builder.adjust(1)
+    await message.answer("Привет! Нажми кнопку ниже, чтобы поиграть 👇", reply_markup=builder.as_markup(resize_keyboard=True))
+
+async def main():
+    await dp.start_polling(bot)
 
 if __name__ == "__main__":
-    executor.start_polling(dp, skip_updates=True)
+    asyncio.run(main())
